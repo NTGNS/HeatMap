@@ -30,13 +30,16 @@ public class MainActivity extends AppCompatActivity {
         dostepneSieciVector.add("<puste>");
 
         //spiner
-        ArrayAdapter<String> dostepneSieciAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, dostepneSieciVector);
+        //ArrayAdapter<String> dostepneSieciAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, dostepneSieciVector);
+        ArrayAdapter<String> dostepneSieciAdapter = new ArrayAdapter<String>(this, R.layout.spinner_layout,dostepneSieciVector);
         final Spinner dostepneSieciSpinner = (Spinner) findViewById(R.id.listaDostepnychSieci);
         dostepneSieciSpinner.setAdapter(dostepneSieciAdapter);
 
         dostepneSieciSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int numer, long l) {
+
+
                 if(numer != 0) {        //po prostu by nie wyrzucało informacji na początku aplikacji o "wybraniu" jakiejś opcji
                     Toast.makeText(getApplicationContext(), "Wybrano " + "element numer: " + (numer - 1), Toast.LENGTH_LONG).show();
                     //W tym miejscu jest wywoływana metoda (Intencja) Kondzia... trzeba jej wcisnąć jakoś numer wi-fi z listy
