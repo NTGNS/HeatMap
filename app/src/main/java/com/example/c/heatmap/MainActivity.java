@@ -28,18 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
         ///Very important. This part of code requires addition of 'com.karumi:dexter:4.2.0 to build.gradle doc
         ///it asks user for GPS usage permission
-        PermissionListener dialogPermissionListener =
-                DialogOnDeniedPermissionListener.Builder
-                        .withContext(this)
-                        .withTitle("GPS permission")
-                        .withMessage("It's necessary for correct heatmap generation.")
-                        .withButtonText(android.R.string.ok)
-                        .build();
-
-        Dexter.withActivity(this)
-                .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                .withListener(dialogPermissionListener)
-                .check();
+        locationListener.GetGPSPermissions(this);
 
 
         final Button button = findViewById(R.id.button);
