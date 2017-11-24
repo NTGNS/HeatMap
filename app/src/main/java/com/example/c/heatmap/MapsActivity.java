@@ -64,12 +64,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(-34,151), 12.0f));
-        createHeatMap();
+        if (latLngData.size() > 0 ){
+            LatLng start = new LatLng(latLngData.get(0).latitude,latLngData.get(0).longitude);
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(start));
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(start, 12.0f));
+            createHeatMap();
+        }
+
     }
     public void zoomOnPoint(double latitude, double longitude, float zoom){
         mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude,longitude)));
@@ -80,7 +81,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
     public void createHeatMap(){
         for (int i=0; i<latLngData.size(); i++){
-           dataPoints.add(new WeightedLatLng(new LatLng(latLngData.get(i).latitude,latLngData.get(i).longitude), intensityData.get(i).floatValue()));
+            addPointToData(latLngData.get(i).latitude,latLngData.get(i).longitude,intensityData.get(i).floatValue());
         }
        mProvider = new HeatmapTileProvider.Builder().weightedData(dataPoints).build();
         // Add a tile overlay to the map, using the heat map tile provider.

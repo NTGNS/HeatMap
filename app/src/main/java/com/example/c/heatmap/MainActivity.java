@@ -31,7 +31,6 @@ public class MainActivity extends AppCompatActivity {
                 i.putParcelableArrayListExtra("latLngData",data);
                 i.putExtra("intensityData",intensity);
                 startActivity(i);
-
             }
         });
     }
