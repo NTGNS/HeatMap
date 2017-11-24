@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     GPS_Listener locationListener = new GPS_Listener(getBaseContext());
     WifiReceiver wifiReceiver;
     WifiFinder wifiFinder;
-    private int mInterval = 500; // 5 seconds by default, can be changed later
+    private int mInterval = 500; // 5 seconds by default, can be changed laterz
     private Handler mHandler;
 
     ArrayList<LatLng> data = new ArrayList<LatLng>();
