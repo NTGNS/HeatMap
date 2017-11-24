@@ -10,5 +10,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //Ten komentarz mieć winieneś
+        //Ten komentarz mieć winieneś
     }
 }
