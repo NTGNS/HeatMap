@@ -24,7 +24,11 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import GPS_Featuring.GPS_Listener;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.maps.android.heatmaps.WeightedLatLng;
+import java.util.function.DoubleToLongFunction;
 
+import java.lang.reflect.Array;
 public class MainActivity extends AppCompatActivity {
     GPS_Listener locationListener = new GPS_Listener(getBaseContext());
     WifiReceiver wifiReceiver;
@@ -32,15 +36,33 @@ public class MainActivity extends AppCompatActivity {
     private int mInterval = 500; // 5 seconds by default, can be changed later
     private Handler mHandler;
 
+    ArrayList<LatLng> data = new ArrayList<LatLng>();
+    ArrayList<Float> intensity = new ArrayList<Float>();
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+        data.add(new LatLng(30,40));
+        intensity.add(new Float(0.5f));
         setContentView(R.layout.activity_main);
 
         ///Very important. This part of code requires addition of 'com.karumi:dexter:4.2.0 to build.gradle doc
         ///it asks user for GPS usage permission
         //locationListener.GetGPSPermissions(this);
+
+        //mapy - kondziu
+        Button btn = (Button)findViewById(R.id.button2);
+        btn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // TODO Auto-generated method stub
+                Intent i = new Intent(getApplicationContext(),MapsActivity.class);
+                i.putParcelableArrayListExtra("latLngData",data);
+                i.putExtra("intensityData",intensity);
+                startActivity(i);
+            }
+        });
+        //mapy - kondziu - koniec
+
 
         //sieci wifi
         WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
