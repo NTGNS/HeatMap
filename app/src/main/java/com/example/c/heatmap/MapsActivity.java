@@ -1,6 +1,8 @@
 package com.example.c.heatmap;
 
 import android.content.Context;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.widget.Toast;
@@ -21,6 +23,8 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
+import GPS_Featuring.GPS_Listener;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
@@ -29,8 +33,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<WeightedLatLng> dataPoints;
     ArrayList<LatLng> latLngData;
     ArrayList<Float> intensityData;
+    LocationManager locationManager;
+    GPS_Listener locationListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        locationManager = (LocationManager)
+                getSystemService(Context.LOCATION_SERVICE);
+        locationListener = new GPS_Listener(getBaseContext());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
