@@ -92,13 +92,17 @@ public class MainActivity extends AppCompatActivity {
                 {
                     try
                     {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
+                        locationListener.measure(locationManager);
                         Toast.makeText(v.getContext(),"latitude"+locationListener.getLatitude()+" longitude " + locationListener.getLongitude(), Toast.LENGTH_SHORT).show();
                     }
-                    catch(Exception ex)
+                    catch(SecurityException ex)
                     {
-                        Toast.makeText(v.getContext(),ex.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(v.getContext(),"Acces to GPS unauthorized", Toast.LENGTH_SHORT).show();
+                    }catch(Exception ex)
+                    {
+                        Toast.makeText(v.getContext(),"No GPS or GSM", Toast.LENGTH_SHORT).show();
                     }
+
                 }
                 //example ends here
             }

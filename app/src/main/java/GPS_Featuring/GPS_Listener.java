@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 
 import com.karumi.dexter.Dexter;
@@ -18,6 +19,7 @@ import com.karumi.dexter.listener.single.PermissionListener;
 public class GPS_Listener implements LocationListener
 {
     Context context;
+    Location lastLocation;
 
     Double longitude;
     public Double getLongitude()
@@ -29,6 +31,19 @@ public class GPS_Listener implements LocationListener
     public Double getLatitude()
     {
         return latitude;
+    }
+
+
+    public void measure(LocationManager locationManager) throws SecurityException, Exception
+    {
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, this);
+        this.longitude = lastLocation.getLongitude();
+        this.latitude =  lastLocation.getLatitude();
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, this);
+        if(this.longitude==null)this.longitude = lastLocation.getLongitude();
+        if(this.latitude==null)this.latitude =  lastLocation.getLatitude();
+
+        if(this.longitude==null || this.latitude==null)throw new Exception("No GPS or GSM positioning available");
     }
 
     public void GetGPSPermissions(Activity activity)
@@ -55,10 +70,7 @@ public class GPS_Listener implements LocationListener
     @Override
     public void onLocationChanged(Location loc)
     {
-        this.longitude = loc.getLongitude();
-        //Log.v(TAG, longitude);
-        this.latitude =  loc.getLatitude();
-        //Log.v(TAG, latitude);
+        lastLocation=loc;
     }
 
     @Override
