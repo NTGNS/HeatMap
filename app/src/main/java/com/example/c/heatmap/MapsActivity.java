@@ -54,7 +54,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     WifiReceiver wifiReceiver;
     WifiFinder wifiFinder;
     NetworksAndCoordStore networkAndCoordStore = new NetworksAndCoordStore();
-    private int mInterval = 500; // 5 seconds by default, can be changed laterz
+    private int mInterval = 500;
     private Handler mHandler;
     private FusedLocationProviderClient mFusedLocationClient;
 
