@@ -15,7 +15,7 @@ public class NetworksAndCoordStore {
     void addScanResults(List<ScanResult> wifiScanList, Double latitude, Double longitude){
         storageList.add(new Storage(wifiScanList, latitude, longitude));
     }
-    
+
 
     class Storage{
 
