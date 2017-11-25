@@ -1,5 +1,6 @@
 package com.example.c.heatmap;
 
+import android.content.Context;
 import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -30,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         //Ten komentarz mieć winieneś
         //Ten komentarz mieć winieneś2
 
-        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(getApplicationContext().WIFI_SERVICE);
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
 
         wifiReceiver = new WifiReceiver(wifiManager);
         registerReceiver(wifiReceiver,
@@ -41,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         wifiFinder = new WifiFinder(wifiManager);
         startRepeatingNetworkScan();
 
-        but  = findViewById(R.id.button);;
+        but  = findViewById(R.id.button);
         but.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
