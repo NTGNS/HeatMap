@@ -169,7 +169,11 @@ public class MainActivity extends AppCompatActivity {
 
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(wifiReceiver);
+        try {
+            unregisterReceiver(wifiReceiver);
+        }catch(IllegalArgumentException ex){
+
+        }
     }
 
     @Override
