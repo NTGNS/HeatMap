@@ -59,10 +59,15 @@ public class MainActivity extends AppCompatActivity {
         //vektor elementów
         final Vector<String> dostepneSieciVector;
         dostepneSieciVector = new Vector<String>();
-        dostepneSieciVector.add("<puste>");     //dodajemy opcje "puste". Zapytacie po co? Bo jak nie ma żaanego elementu przy tworzeniu to nie
-                                                //można wybrać żadnej opcji (wyświetla się, ale się nie wybiera)
-
-        //spiner
+        if(wifiReceiver.getScanResults().size()==0) {
+            dostepneSieciVector.add("<puste>");     //dodajemy opcje "puste". Zapytacie po co? Bo jak nie ma żaanego elementu przy tworzeniu to nie
+        }    // można wybrać żadnej opcji (wyświetla się, ale się nie wybiera)
+        else {
+            for (ScanResult sr : wifiReceiver.getScanResults()) {
+                dostepneSieciVector.add(sr.SSID+": "+sr.level);
+            }
+        }
+       //spiner
         //ArrayAdapter<String> dostepneSieciAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, dostepneSieciVector); //stare śmieci
         ArrayAdapter<String> dostepneSieciAdapter = new ArrayAdapter<String>(this, R.layout.spinner_layout,dostepneSieciVector);    //dzięki temu możemy modyfikować wygląd czcionki (plik: spinner_layout.xml z folderu layout)
         final Spinner dostepneSieciSpinner = (Spinner) findViewById(R.id.listaDostepnychSieci);
@@ -94,7 +99,16 @@ public class MainActivity extends AppCompatActivity {
         Button sprawdzSieci = (Button) findViewById(R.id.wyszukajSieciButton);
         sprawdzSieci.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {                 //co się stanie gdy naciśniemy przycisk
+            public void onClick(View v) {//co się stanie gdy naciśniemy przycisk
+                if (dostepneSieciVector.size() > 0) {                        //jeśli w vectorze istnieją już jakies elementy (naciskamy po raz drugi+ przycisk)
+                   // for (int i = dostepneSieciVector.size(); i >1; i--) {  //to trzeba "odświeżyć" listę dostepnych sieci -> usunąć poprzednie i dodać wszystkie raz jeszcze.
+                   //     dostepneSieciVector.remove(i-1);              //ALE pozostawiamy element "zerowy", aby była opcja "puste" -> "nie dokonaj wyboru"
+                   // }
+                    dostepneSieciVector.clear();
+                }
+                for(ScanResult sr : wifiReceiver.getScanResults()){
+                    dostepneSieciVector.add(sr.SSID+": "+sr.level);
+                }
                /* Toast.makeText(getApplicationContext(), "Wyszukuję dostepnych sieci...", Toast.LENGTH_SHORT).show();
                 //W tym miejscu otrzymujemy listę/tablicę/chuj-wie-co zawierające nazwy dostępnych sieci.
                 int iloscSieci = 5;
