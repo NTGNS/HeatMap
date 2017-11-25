@@ -1,18 +1,11 @@
 package com.example.c.heatmap;
 
-import android.Manifest;
-import android.content.Context;
-import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
-import android.os.Handler;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -27,20 +20,19 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
 
-import java.io.Console;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import GPS_Featuring.GPS_Listener;
+import GpsFeaturing.GPS_Listener;
+import WifiNetworksFeaturing.WifiReceiver;
+
+import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -50,24 +42,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<WeightedLatLng> dataPoints;
     ArrayList<LatLng> latLngData;
     ArrayList<Float> intensityData;
-    GPS_Listener locationListener = new GPS_Listener(getBaseContext());
+    GPS_Listener locationListener;
+
     WifiReceiver wifiReceiver;
-    WifiFinder wifiFinder;
+    WifiManager wifiManager;
+    final private int wifiNetworksScanInterval = 500;
     NetworksAndCoordStore networkAndCoordStore = new NetworksAndCoordStore();
-    private int mInterval = 500;
+
     private Handler mHandler;
     private FusedLocationProviderClient mFusedLocationClient;
 
-    LatLng lastPosition;
+    final Button scanWifiNetworksButton = findViewById(R.id.wyszukajSieciButton);
+    final Button debugButton = findViewById(R.id.debugButton);
+    final Spinner networksListSpinner = findViewById(R.id.listaDostepnychSieci);
+    final Vector<String> scannedWifiNetworksVector = new Vector<String>();
 
+
+    public MapsActivity() {
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+        locationListener = new GPS_Listener(getApplicationContext());
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        setLastPosition();
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -75,116 +76,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //create data array list(for heatmap points)
         dataPoints = new ArrayList<WeightedLatLng>();
 
-
         latLngData = new ArrayList<>();
         latLngData.add(new LatLng(30, 40));
         intensityData = new ArrayList<Float>();
         intensityData.add(new Float(0.5f));
 
-        //sieci wifi
-        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-
-        wifiReceiver = new WifiReceiver(wifiManager);
-        registerReceiver(wifiReceiver,
-                new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-        //WifiManager.WIFI_STATE_DISABLING
-
+        wifiConfigure();                    //configuration of turning wifi on, scanning networks etc.
         mHandler = new Handler();
-        wifiFinder = new WifiFinder(wifiManager);
         startRepeatingNetworkScan();
-
-        //sieci wifi - koniec
-
-        //wektor elementów
-        final Vector<String> dostepneSieciVector;
-        dostepneSieciVector = new Vector<String>();
-        if (wifiReceiver.getScanResults().size() == 0) {
-            dostepneSieciVector.add("<puste>");
-            //dodajemy opcje "puste". Zapytacie po co? Bo jak nie ma żaanego elementu przy tworzeniu to nie
-        }    // można wybrać żadnej opcji (wyświetla się, ale się nie wybiera)
-        else {
-            for (ScanResult sr : wifiReceiver.getScanResults()) {
-                dostepneSieciVector.add(sr.SSID);
-            }
-        }
-        //spiner
-        //ArrayAdapter<String> dostepneSieciAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, dostepneSieciVector); //stare śmieci
-        ArrayAdapter<String> dostepneSieciAdapter = new ArrayAdapter<String>(this, R.layout.spinner_layout, dostepneSieciVector);    //dzięki temu możemy modyfikować wygląd czcionki (plik: spinner_layout.xml z folderu layout)
-        final Spinner dostepneSieciSpinner = (Spinner) findViewById(R.id.listaDostepnychSieci);
-        dostepneSieciSpinner.setAdapter(dostepneSieciAdapter);
-
-        dostepneSieciSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {           //co się stanie gdy wybierzemy...
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int numer, long l) {          //...element z listy
-
-                //poniższe jest bez sensu bo nie wyświetla dla pierwszego elementu - nigdy?
-                if (numer != 0) {        //po prostu by nie wyrzucało informacji na początku aplikacji o "wybraniu" jakiejś opcji
-                    Toast.makeText(getApplicationContext(), "Wybrano " + "element numer: " + (numer - 1), Toast.LENGTH_LONG).show();
-                    latLngData.addAll(networkAndCoordStore.getCoordsForESSID(dostepneSieciVector.get(numer)));
-                    intensityData.addAll(networkAndCoordStore.getLevelForESSID(dostepneSieciVector.get(numer)));
-
-                    //latLngData.add(new LatLng(50.297158, 18.686032));     //it is working so everything should work fine
-                    //intensityData.add(new Float(0.5f));                  //it is working so everything should work fine
-
-                    for (int i = 0; i < latLngData.size(); i++) {
-                        addPointToData(latLngData.get(i).latitude, latLngData.get(i).longitude, intensityData.get(i).floatValue());
-                    }
-                    mProvider.setWeightedData(dataPoints);
-                    if (mOverlay != null)
-                        mOverlay.clearTileCache();
-
-
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {                                     //...nic (nie wiem jak to zrobić, ale podobno jest i taka opcja)
-                Toast.makeText(getApplicationContext(), "Nie wybrano niczego.", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        //button
-        Button sprawdzSieci = (Button) findViewById(R.id.wyszukajSieciButton);
-        sprawdzSieci.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {//co się stanie gdy naciśniemy przycisk
-                setLastPosition();
-                if (dostepneSieciVector.size() > 0) {                        //jeśli w vectorze istnieją już jakies elementy (naciskamy po raz drugi+ przycisk)
-                    // for (int i = dostepneSieciVector.size(); i >1; i--) {  //to trzeba "odświeżyć" listę dostepnych sieci -> usunąć poprzednie i dodać wszystkie raz jeszcze.
-                    //     dostepneSieciVector.remove(i-1);              //ALE pozostawiamy element "zerowy", aby była opcja "puste" -> "nie dokonaj wyboru"
-                    // }
-                    dostepneSieciVector.clear();
-                }
-                List<ScanResult> listOfNetworks = wifiReceiver.getScanResults();
-                for (ScanResult sr : listOfNetworks) {
-                    dostepneSieciVector.add(sr.SSID);
-                }
-
-                LocationManager locationManager = (LocationManager)getSystemService(getBaseContext().LOCATION_SERVICE);
-                if (ActivityCompat.checkSelfPermission(v.getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                {
-                    Toast.makeText(v.getContext(),"No permission to GPS", Toast.LENGTH_SHORT).show() ;
-                }
-                else
-                {
-                    try
-                    {
-                        locationListener.measure(locationManager);
-                        Toast.makeText(v.getContext(),"latitude"+locationListener.getLatitude()+" longitude " + locationListener.getLongitude(), Toast.LENGTH_SHORT).show();
-                    }
-                    catch(SecurityException ex)
-                    {
-                        Toast.makeText(v.getContext(),"Acces to GPS unauthorized", Toast.LENGTH_SHORT).show();
-                    }catch(Exception ex)
-                    {
-                        Toast.makeText(v.getContext(),ex.toString(), Toast.LENGTH_SHORT).show();
-                    }
-
-                }
-                //example ends here
-            }
-        });
-
+        networksListSpinnerConfigure();     //configuration of spinner list with wifi networks names: its adapter, layout etc.
+        buttonsConfigure();                 //configuration of buttons on layout
     }
 
 
@@ -202,31 +103,34 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap = googleMap;
 
-        if (latLngData.size() > 0 ){
-            LatLng start = new LatLng(latLngData.get(latLngData.size()-1).latitude, latLngData.get(latLngData.size()-1).longitude);
+        if (latLngData.size() > 0) {
+            LatLng start = new LatLng(latLngData.get(latLngData.size() - 1).latitude, latLngData.get(latLngData.size() - 1).longitude);
             mMap.moveCamera(CameraUpdateFactory.newLatLng(start));
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(start, 12.0f));
             createHeatMap();
         }
 
     }
-    public void zoomOnPoint(double latitude, double longitude, float zoom){
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude,longitude)));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude,longitude),zoom));
-    }
-    public void addPointToData(double latitude, double longitude, double intensity){
-        dataPoints.add(new WeightedLatLng(new LatLng(latitude,longitude),intensity));
-    }
-    public void createHeatMap(){
-        for (int i=0; i<latLngData.size(); i++){
-            addPointToData(latLngData.get(i).latitude,latLngData.get(i).longitude,intensityData.get(i).floatValue());
-        }
-       mProvider = new HeatmapTileProvider.Builder().weightedData(dataPoints).build();
-        // Add a tile overlay to the map, using the heat map tile provider.s
-       mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+
+    public void zoomOnPoint(double latitude, double longitude, float zoom) {
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude, longitude)));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), zoom));
     }
 
-    public void removeHeatMap(){
+    public void addPointToData(double latitude, double longitude, double intensity) {
+        dataPoints.add(new WeightedLatLng(new LatLng(latitude, longitude), intensity));
+    }
+
+    public void createHeatMap() {
+        for (int i = 0; i < latLngData.size(); i++) {
+            addPointToData(latLngData.get(i).latitude, latLngData.get(i).longitude, intensityData.get(i).floatValue());
+        }
+        mProvider = new HeatmapTileProvider.Builder().weightedData(dataPoints).build();
+        // Add a tile overlay to the map, using the heat map tile provider.s
+        mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+    }
+
+    public void removeHeatMap() {
         mOverlay.remove();
     }
 
@@ -235,7 +139,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onPause();
         try {
             unregisterReceiver(wifiReceiver);
-        }catch(IllegalArgumentException ex){
+        } catch (IllegalArgumentException ex) {
 
         }
     }
@@ -251,9 +155,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void run() {
             try {
-                wifiFinder.scanForNetworks();
+                wifiManager.startScan();
             } finally {
-                mHandler.postDelayed(mStatusChecker, mInterval);
+                mHandler.postDelayed(mStatusChecker, wifiNetworksScanInterval);
             }
         }
     };
@@ -266,31 +170,96 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mHandler.removeCallbacks(mStatusChecker);
     }
 
-    //możliwe że po debugu się nigdy więcej nie przyda, ale narazie używam ostatnich coordów i mam to w dupie. Alek
-    void setLastPosition(){
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
+    void wifiConfigure(){
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        if(wifiManager.getWifiState() == WIFI_STATE_DISABLED){
+            wifiManager.setWifiEnabled(true);
         }
-        mFusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        // Got last known location. In some rare situations this can be null.
-                        if (location != null) {
-                            lastPosition = (new LatLng(location.getLatitude(), location.getLongitude()));
-                        }
-                    }
-                });
+        wifiReceiver = new WifiReceiver(wifiManager);
+        registerReceiver(wifiReceiver,
+                new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        //WifiManager.WIFI_STATE_DISABLING
     }
 
+    void networksListSpinnerConfigure(){
 
+        if (wifiReceiver.getScanResults().size() == 0) {
+            //dodajemy opcje "puste". Zapytacie po co? Bo jak nie ma żadnego elementu przy tworzeniu to nie
+            // można wybrać żadnej opcji (wyświetla się, ale się nie wybiera)
+            //UPDATE: i tak nie można wybrać pierwszej opcji po wyskanowaniu sieci
+            //TODO
+            //i think its possible i just dunno how to do it now
+            scannedWifiNetworksVector.add("<puste>");
+        } else {
+            for (ScanResult sr : wifiReceiver.getScanResults()) {
+                scannedWifiNetworksVector.add(sr.SSID);
+            }
+        }
+        //spiner
+        networksListSpinner.setAdapter(new ArrayAdapter<String>(this, R.layout.spinner_layout, scannedWifiNetworksVector));
+
+        networksListSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int numer, long l) {
+                latLngData.addAll(networkAndCoordStore.getCoordsForESSID(scannedWifiNetworksVector.get(numer)));
+                intensityData.addAll(networkAndCoordStore.getLevelForESSID(scannedWifiNetworksVector.get(numer)));
+                for (int i = 0; i < latLngData.size(); i++) {
+                    addPointToData(latLngData.get(i).latitude, latLngData.get(i).longitude, intensityData.get(i).floatValue());
+                }
+                mProvider.setWeightedData(dataPoints);
+                if (mOverlay != null)
+                    mOverlay.clearTileCache();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                //do nothing
+            }
+        });
+
+    }
+
+    void buttonsConfigure(){
+        //button
+        scanWifiNetworksButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                scannedWifiNetworksVector.clear();
+                List<ScanResult> listOfNetworks = wifiReceiver.getScanResults();
+                for (ScanResult sr : listOfNetworks) {
+                    scannedWifiNetworksVector.add(sr.SSID);
+                }
+                Double latitude = null;
+                Double longitude = null;
+
+                try {
+                    latitude = locationListener.getLatitude();
+                    longitude = locationListener.getLongitude();
+                } catch (Exception ex) {
+                    Toast.makeText(v.getContext(), "Problem: " + ex.toString(), Toast.LENGTH_SHORT).show();
+                }
+
+                networkAndCoordStore.addScanResults(listOfNetworks, latitude, longitude);
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude, longitude)));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 21.0f));
+
+                Toast.makeText(v.getContext(), "latitude: " + latitude + "\nlongitude: " + longitude, Toast.LENGTH_SHORT).show();
+
+                //networkAndCoordStore here should be stored location and networks
+
+
+            }
+            //example ends here
+
+        });
+
+        debugButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(v.getContext(), locationListener.getStatusLog(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
 }
 
