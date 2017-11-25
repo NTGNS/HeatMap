@@ -19,7 +19,7 @@ import com.karumi.dexter.listener.single.PermissionListener;
 public class GPS_Listener implements LocationListener
 {
     Context context;
-    Location lastLocation;
+    Location lastLocation = new Location(LocationManager.NETWORK_PROVIDER);
 
     Double longitude;
     public Double getLongitude()
@@ -36,12 +36,13 @@ public class GPS_Listener implements LocationListener
 
     public void measure(LocationManager locationManager) throws SecurityException, Exception
     {
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, this);
-        this.longitude = lastLocation.getLongitude();
-        this.latitude =  lastLocation.getLatitude();
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, this);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 50, 1, this);
         if(this.longitude==null)this.longitude = lastLocation.getLongitude();
         if(this.latitude==null)this.latitude =  lastLocation.getLatitude();
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 50, 1, this);
+        this.longitude = lastLocation.getLongitude();
+        this.latitude =  lastLocation.getLatitude();
+
 
         if(this.longitude==null || this.latitude==null)throw new Exception("No GPS or GSM positioning available");
     }

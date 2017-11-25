@@ -60,6 +60,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     LatLng lastPosition;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,6 +148,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         sprawdzSieci.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {//co się stanie gdy naciśniemy przycisk
+                setLastPosition();
                 if (dostepneSieciVector.size() > 0) {                        //jeśli w vectorze istnieją już jakies elementy (naciskamy po raz drugi+ przycisk)
                     // for (int i = dostepneSieciVector.size(); i >1; i--) {  //to trzeba "odświeżyć" listę dostepnych sieci -> usunąć poprzednie i dodać wszystkie raz jeszcze.
                     //     dostepneSieciVector.remove(i-1);              //ALE pozostawiamy element "zerowy", aby była opcja "puste" -> "nie dokonaj wyboru"
@@ -158,30 +160,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     dostepneSieciVector.add(sr.SSID);
                 }
 
-                LocationManager locationManager = (LocationManager) getSystemService(getBaseContext().LOCATION_SERVICE);
-
-
-                if (ActivityCompat.checkSelfPermission(v.getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(v.getContext(), "No permission to GPS", Toast.LENGTH_SHORT).show();
-                } else {
-                    try {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
-                        Double latitude = locationListener.getLatitude();
-                        Double longitude = locationListener.getLongitude();
-                        Toast.makeText(v.getContext(), "latitude" + latitude + " longitude " + longitude, Toast.LENGTH_SHORT).show();
-
-                        if (latitude != null && longitude != null) {
-                            networkAndCoordStore.addScanResults(listOfNetworks, latitude, longitude);
-                            mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude, longitude)));
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 12.0f));
-                        }else{
-                            networkAndCoordStore.addScanResults(listOfNetworks, lastPosition.latitude, lastPosition.longitude);
-                            mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lastPosition.latitude, lastPosition.longitude)));
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastPosition.latitude, lastPosition.longitude), 20.0f));
-                        }
-                    } catch (Exception ex) {
-                        Toast.makeText(v.getContext(), ex.getMessage(), Toast.LENGTH_SHORT).show();
+                LocationManager locationManager = (LocationManager)getSystemService(getBaseContext().LOCATION_SERVICE);
+                if (ActivityCompat.checkSelfPermission(v.getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                {
+                    Toast.makeText(v.getContext(),"No permission to GPS", Toast.LENGTH_SHORT).show() ;
+                }
+                else
+                {
+                    try
+                    {
+                        locationListener.measure(locationManager);
+                        Toast.makeText(v.getContext(),"latitude"+locationListener.getLatitude()+" longitude " + locationListener.getLongitude(), Toast.LENGTH_SHORT).show();
                     }
+                    catch(SecurityException ex)
+                    {
+                        Toast.makeText(v.getContext(),"Acces to GPS unauthorized", Toast.LENGTH_SHORT).show();
+                    }catch(Exception ex)
+                    {
+                        Toast.makeText(v.getContext(),ex.toString(), Toast.LENGTH_SHORT).show();
+                    }
+
                 }
                 //example ends here
             }
@@ -205,7 +203,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
 
         if (latLngData.size() > 0 ){
-            LatLng start = new LatLng(latLngData.get(0).latitude, latLngData.get(0).longitude);
+            LatLng start = new LatLng(latLngData.get(latLngData.size()-1).latitude, latLngData.get(latLngData.size()-1).longitude);
             mMap.moveCamera(CameraUpdateFactory.newLatLng(start));
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(start, 12.0f));
             createHeatMap();
@@ -267,6 +265,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     void stopRepeatingNetworkScan() {
         mHandler.removeCallbacks(mStatusChecker);
     }
+
     //możliwe że po debugu się nigdy więcej nie przyda, ale narazie używam ostatnich coordów i mam to w dupie. Alek
     void setLastPosition(){
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
