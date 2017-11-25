@@ -131,18 +131,7 @@ public class MainActivity extends AppCompatActivity {
                 for(ScanResult sr : wifiReceiver.getScanResults()){
                     dostepneSieciVector.add(sr.SSID+": "+sr.level);
                 }
-               /* Toast.makeText(getApplicationContext(), "Wyszukuję dostepnych sieci...", Toast.LENGTH_SHORT).show();
-                //W tym miejscu otrzymujemy listę/tablicę/chuj-wie-co zawierające nazwy dostępnych sieci.
-                int iloscSieci = 5;
-                if (dostepneSieciVector.size() > 1) {                        //jeśli w vectorze istnieją już jakies elementy (naciskamy po raz drugi+ przycisk)
-                    for (int i = dostepneSieciVector.size(); i > 1; i--) {  //to trzeba "odświeżyć" listę dostepnych sieci -> usunąć poprzednie i dodać wszystkie raz jeszcze.
-                        dostepneSieciVector.remove(i - 1);              //ALE pozostawiamy element "zerowy", aby była opcja "puste" -> "nie dokonaj wyboru"
-                    }
-                }
-                    for (int i = 0; i < iloscSieci; i++) {                        //dodajemy spis wszystkich wykrytych sieci wi-fi (numery elementów w vectorze: 1-(n+1),
-                        dostepneSieciVector.add("Opcja numer: " + i);           //gdzie "n" to liczba elementów (element zerowy to element "<puste>"
-                    }
-               */
+
                 LocationManager locationManager = (LocationManager)getSystemService(getBaseContext().LOCATION_SERVICE);
 
 
