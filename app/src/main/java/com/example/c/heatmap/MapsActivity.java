@@ -248,7 +248,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Toast.makeText(v.getContext(), "latitude: " + latitude + "\nlongitude: " + longitude, Toast.LENGTH_SHORT).show();
             }
-            //example ends here
 
         });
 
