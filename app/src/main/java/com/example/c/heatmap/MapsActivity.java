@@ -26,7 +26,9 @@ import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import GpsFeaturing.GPS_Listener;
@@ -39,9 +41,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     HeatmapTileProvider mProvider;
     TileOverlay mOverlay;
-    ArrayList<WeightedLatLng> dataPoints;
-    ArrayList<LatLng> latLngData;
-    ArrayList<Float> intensityData;
+    //ArrayList<WeightedLatLng> dataPoints;
+    //ArrayList<LatLng> latLngData = new ArrayList<>();
+    //ArrayList<Double> intensityData = new ArrayList<Double>();
     GPS_Listener locationListener;
 
     WifiReceiver wifiReceiver;
@@ -52,10 +54,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Handler mHandler;
     private FusedLocationProviderClient mFusedLocationClient;
 
-    final Button scanWifiNetworksButton = findViewById(R.id.wyszukajSieciButton);
-    final Button debugButton = findViewById(R.id.debugButton);
-    final Spinner networksListSpinner = findViewById(R.id.listaDostepnychSieci);
-    final Vector<String> scannedWifiNetworksVector = new Vector<String>();
+    Button scanWifiNetworksButton;
+    Button debugButton;
+    Spinner networksListSpinner;
+    Vector<String> scannedWifiNetworksVector = new Vector<String>();
 
 
     public MapsActivity() {
@@ -73,13 +75,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        //create data array list(for heatmap points)
-        dataPoints = new ArrayList<WeightedLatLng>();
 
-        latLngData = new ArrayList<>();
-        latLngData.add(new LatLng(30, 40));
-        intensityData = new ArrayList<Float>();
-        intensityData.add(new Float(0.5f));
+//        dataPoints = new ArrayList<WeightedLatLng>();
+//        latLngData.add(new LatLng(30, 40));
+//        intensityData.add(new Double(0.5f));
+//        latLngData.add(new LatLng(30.001, 40));
+//        intensityData.add(new Double(0.5f));
 
         wifiConfigure();                    //configuration of turning wifi on, scanning networks etc.
         mHandler = new Handler();
@@ -100,34 +101,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-
         mMap = googleMap;
-
-        if (latLngData.size() > 0) {
-            LatLng start = new LatLng(latLngData.get(latLngData.size() - 1).latitude, latLngData.get(latLngData.size() - 1).longitude);
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(start));
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(start, 12.0f));
-            createHeatMap();
-        }
-
-    }
-
-    public void zoomOnPoint(double latitude, double longitude, float zoom) {
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude, longitude)));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), zoom));
-    }
-
-    public void addPointToData(double latitude, double longitude, double intensity) {
-        dataPoints.add(new WeightedLatLng(new LatLng(latitude, longitude), intensity));
-    }
-
-    public void createHeatMap() {
-        for (int i = 0; i < latLngData.size(); i++) {
-            addPointToData(latLngData.get(i).latitude, latLngData.get(i).longitude, intensityData.get(i).floatValue());
-        }
-        mProvider = new HeatmapTileProvider.Builder().weightedData(dataPoints).build();
-        // Add a tile overlay to the map, using the heat map tile provider.s
+        mProvider = new HeatmapTileProvider.Builder().weightedData(networkAndCoordStore.getWeightedLatLngForSSID("")).build();
         mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+
+//        List<WeightedLatLng> listOfNetworks = networkAndCoordStore.getWeightedLatLngForSSID(scannedWifiNetworksVector.get(0));
+//        if (listOfNetworks.size() > 0) {
+//            LatLng startPoint = new LatLng(listOfNetworks.get(0).getPoint().x, listOfNetworks.get(0).getPoint().y);
+//            zoomOnPoint(startPoint, 18.0f);
+//        }
+
+
+    }
+
+    public void zoomOnPoint(LatLng latLng, float zoom) {
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
+    }
+
+
+    public void createHeatMapForESSID(String SSID) {
+
+        if (!networkAndCoordStore.getWeightedLatLngForSSID(SSID).isEmpty()) {
+            try {
+                mProvider.setWeightedData(networkAndCoordStore.getWeightedLatLngForSSID(SSID));
+                mOverlay.clearTileCache();
+            } catch (NullPointerException ex) {
+                //mProvider and mOverlay could be nulls if its before OnMapReady()
+            }
+        }
     }
 
     public void removeHeatMap() {
@@ -170,9 +172,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mHandler.removeCallbacks(mStatusChecker);
     }
 
-    void wifiConfigure(){
+    void wifiConfigure() {
         wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-        if(wifiManager.getWifiState() == WIFI_STATE_DISABLED){
+        if (wifiManager.getWifiState() == WIFI_STATE_DISABLED) {
             wifiManager.setWifiEnabled(true);
         }
         wifiReceiver = new WifiReceiver(wifiManager);
@@ -181,7 +183,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //WifiManager.WIFI_STATE_DISABLING
     }
 
-    void networksListSpinnerConfigure(){
+    void networksListSpinnerConfigure() {
+        //find spinner
+        networksListSpinner = findViewById(R.id.listaDostepnychSieci);
 
         if (wifiReceiver.getScanResults().size() == 0) {
             //dodajemy opcje "puste". Zapytacie po co? Bo jak nie ma żadnego elementu przy tworzeniu to nie
@@ -201,14 +205,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         networksListSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int numer, long l) {
-                latLngData.addAll(networkAndCoordStore.getCoordsForESSID(scannedWifiNetworksVector.get(numer)));
-                intensityData.addAll(networkAndCoordStore.getLevelForESSID(scannedWifiNetworksVector.get(numer)));
-                for (int i = 0; i < latLngData.size(); i++) {
-                    addPointToData(latLngData.get(i).latitude, latLngData.get(i).longitude, intensityData.get(i).floatValue());
-                }
-                mProvider.setWeightedData(dataPoints);
-                if (mOverlay != null)
-                    mOverlay.clearTileCache();
+                createHeatMapForESSID(scannedWifiNetworksVector.get(numer));
             }
 
             @Override
@@ -219,7 +216,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    void buttonsConfigure(){
+    void buttonsConfigure() {
+        //find buttons
+        scanWifiNetworksButton = findViewById(R.id.wyszukajSieciButton);
+        debugButton = findViewById(R.id.debugButton);
         //button
         scanWifiNetworksButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -239,15 +239,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Toast.makeText(v.getContext(), "Problem: " + ex.toString(), Toast.LENGTH_SHORT).show();
                 }
 
-                networkAndCoordStore.addScanResults(listOfNetworks, latitude, longitude);
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(latitude, longitude)));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 21.0f));
+                //here coordinates and networks are stored:
+                networkAndCoordStore.addScanResults(listOfNetworks, latitude, longitude);
+
+                createHeatMapForESSID(networksListSpinner.getSelectedItem().toString());
 
                 Toast.makeText(v.getContext(), "latitude: " + latitude + "\nlongitude: " + longitude, Toast.LENGTH_SHORT).show();
-
-                //networkAndCoordStore here should be stored location and networks
-
-
             }
             //example ends here
 
